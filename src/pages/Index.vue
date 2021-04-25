@@ -50,14 +50,13 @@ import BrushComponent from 'components/brush/brush.vue'
 import Brush from 'components/brush/brush'
 import EraserComponent from 'components/eraser/eraser.vue'
 import Eraser from 'components/eraser/eraser'
-import CusImg, { CompleteData } from 'components/img.vue'
-import ResizeableImage from 'components/img.vue'
+import ResizeableImage, { CompleteData } from 'components/img.vue'
 
 type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
 
 @Component({
   components: {
-    CusImg,
+    ResizeableImage,
     EraserComponent,
     BrushComponent
   }
