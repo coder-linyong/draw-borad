@@ -46,13 +46,14 @@
 </template>
 
 <script lang="ts">
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Vue, Component, Ref, Watch } from 'vue-property-decorator'
 import BrushComponent from 'components/brush/brush.vue'
 import Brush from 'components/brush/brush'
 import EraserComponent from 'components/eraser/eraser.vue'
 import Eraser from 'components/eraser/eraser'
 import Resizeable, { CompleteData } from 'components/resizeable/resizeable.vue'
-// import FixedHeap, { getFixedHeap } from 'src/fixed-heap'
+import FixedHeap, { newFixedHeap } from 'src/fixed-heap'
 
 type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
 
@@ -67,6 +68,7 @@ export default class DrawBoard extends Vue {
   right = false
   ctrl = false
   isMouseDown = false
+  history: FixedHeap = new FixedHeap(10)
   drawStatus: DrawStatus = 'brush'
   oldPoint = {
     x: 0,
@@ -112,6 +114,11 @@ export default class DrawBoard extends Vue {
   eraserChange (eraser: Eraser) {
     const { ctx } = this
     ctx.lineWidth = eraser.size
+  }
+
+  putHistory () {
+    const { board, ctx, history } = this
+    history.push(ctx.getImageData(0, 0, board.width, board.height))
   }
 
   reset () {
@@ -294,7 +301,6 @@ export default class DrawBoard extends Vue {
       content,
       ctrl
     } = this
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     ctrl && content.addEventListener('mousemove', this.contentMouseMove)
   }
 
@@ -326,15 +332,12 @@ export default class DrawBoard extends Vue {
 
   contentMouseUp () {
     const { content } = this
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     content.removeEventListener('mousemove', this.contentMouseMove)
   }
 
   mounted () {
     const { board } = this
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     window.addEventListener('keydown', this.keyDown)
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     window.addEventListener('keyup', this.keyUp)
     if (board.getContext ?? false) {
       const ctx = this.ctx = this.board.getContext('2d') as CanvasRenderingContext2D
@@ -345,13 +348,11 @@ export default class DrawBoard extends Vue {
     }
     board.width = document.body.clientWidth
     board.height = document.body.clientHeight - 58
-    // window.fh = getFixedHeap(10)
+    window.arr = newFixedHeap(10)
   }
 
   beforeDestroy () {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     window.removeEventListener('keydown', this.keyDown)
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     window.removeEventListener('keyup', this.keyUp)
   }
 }
