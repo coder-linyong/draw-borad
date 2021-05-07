@@ -11,7 +11,8 @@
       ref="box"
       :class="$style.img"
       @mousedown.prevent)
-      img(:src="url" @mousedown.prevent ref="img")
+      img(v-if="type==='img'" :src="url" :width="width-padding*2" :height="height-padding*2" @mousedown.prevent ref="img")
+      canvas(v-if="type==='shape'" :width="width-padding*2" :height="height-padding*2" @mousedown.prevent ref="img")
       div(
         v-for="drop of dropBlock"
         :data-pos="drop"
@@ -32,10 +33,25 @@
       label
       :class="$style.rotate"
       :label-value="`${rotate}°`")
+    q-btn.absolute-bottom-right.bg-white(icon="edit" round dense @click="visible=true"  v-if="type==='shape'")
+    q-dialog( v-model="visible" position="right" v-if="type==='shape'")
+      q-card.relative-position(style="width:300px;")
+        q-card-section.row.items-center.justify-end
+          q-btn(dense round icon="close" @click="visible=false" flat size="sm")
+        ShapeEditor(:shapeSync.sync="shape" @change="onShapeChange" @choose="onChoose")
 </template>
 
 <script lang="ts">
 import { Component, Emit, Prop, Ref, Vue } from 'vue-property-decorator'
+import ShapeEditor, { ShapeClassName } from 'components/resizeable/shapes.vue'
+import Polygon from 'components/resizeable/polygon'
+import Capsule from 'components/resizeable/capsule'
+import RightTriangle from 'components/resizeable/right-triangle'
+import Arrow from 'components/resizeable/arrow'
+import Star from 'components/resizeable/star'
+import Bubble from 'components/resizeable/bubble'
+import Hook from 'components/resizeable/hook'
+import Fork from 'components/resizeable/fork'
 
 type BlockPosition = 'lt' | 'rt' | 'rb' | 'lb'
 
@@ -43,25 +59,43 @@ export interface CompleteData {
   x: number;
   y: number;
   rotate: number;
-  width:number;
-  height:number;
+  width: number;
+  height: number;
 }
 
-@Component
+@Component({
+  components: { ShapeEditor }
+})
 export default class ResizeableImage extends Vue {
+  padding = 10
   width = 0
   height = 0
   drop = false
+  visible = true
   dropDirection: BlockPosition = 'rb'
   rotate = 0
   move = false
+  ctx!: CanvasRenderingContext2D
   pos = {
     x: 0,
     y: 0
   }
 
-  @Prop({ type: String, required: true })
-  url!:string
+  shape: Polygon | Capsule = new Polygon({
+    borderNumber: Polygon.minBorderNumber,
+    radius: Polygon.minRadius
+  })
+
+  @Prop({
+    type: String
+  })
+  url!: string
+
+  @Prop({
+    type: String,
+    required: true
+  })
+  type!: 'img' | 'shape'
 
   dropBlock: Array<BlockPosition> = ['lt', 'rt', 'rb', 'lb']
 
@@ -70,11 +104,13 @@ export default class ResizeableImage extends Vue {
       pos,
       width,
       height,
+      padding,
       rotate
     } = this
     return {
       left: `${pos.x}px`,
       top: `${pos.y}px`,
+      padding: `${padding}px`,
       width: width ? `${width}px` : 'auto',
       height: height ? `${height}px` : 'auto',
       transform: `translate(-50%, -50%) rotate(${rotate}deg)`
@@ -83,12 +119,22 @@ export default class ResizeableImage extends Vue {
 
   @Ref('container') container!: HTMLElement
   @Ref('box') box!: HTMLElement
-  @Ref('img') img!: HTMLImageElement
+  @Ref('img') img!: HTMLImageElement | HTMLCanvasElement
 
   @Emit('complete')
-  complete ():CompleteData {
-    const { rotate, img, pos: { x, y } } = this
-    const { clientWidth, clientHeight } = img
+  complete (): CompleteData {
+    const {
+      rotate,
+      img,
+      pos: {
+        x,
+        y
+      }
+    } = this
+    const {
+      clientWidth,
+      clientHeight
+    } = img
     return {
       rotate,
       x: x - clientWidth / 2,
@@ -96,6 +142,41 @@ export default class ResizeableImage extends Vue {
       width: clientWidth,
       height: clientHeight
     }
+  }
+
+  onChoose (name: ShapeClassName) {
+    if (name === 'Polygon') {
+      this.shape = new Polygon({
+        borderNumber: Polygon.minBorderNumber,
+        radius: Polygon.minRadius
+      })
+    } else if (name === 'Capsule') {
+      this.shape = new Capsule({})
+    } else if (name === 'RightTriangle') {
+      this.shape = new RightTriangle({})
+    } else if (name === 'Arrow') {
+      this.shape = new Arrow({})
+    } else if (name === 'Star') {
+      this.shape = new Star({ angleNum: 5 })
+    } else if (name === 'Bubble') {
+      this.shape = new Bubble({ })
+    } else if (name === 'Hook') {
+      this.shape = new Hook({})
+    } else if (name === 'Fork') {
+      this.shape = new Fork({})
+    }
+    this.onShapeChange()
+  }
+
+  onShapeChange () {
+    const {
+      shape,
+      img,
+      ctx
+    } = this
+    shape.x = img.width / 2
+    shape.y = img.height / 2
+    shape.draw(ctx)
   }
 
   mouseDown (e: MouseEvent) {
@@ -111,7 +192,7 @@ export default class ResizeableImage extends Vue {
       this.drop = true
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       this.dropDirection = pos
-    } else if (nodeName === 'IMG') {
+    } else if (nodeName === 'IMG' || nodeName === 'CANVAS') {
       this.move = true
     }
   }
@@ -145,6 +226,11 @@ export default class ResizeableImage extends Vue {
       }
       this.width = Math.max(100, w)
       this.height = Math.max(100, h)
+      if (this.ctx) {
+        setTimeout(() => {
+          this.onShapeChange()
+        }, 10)
+      }
     } else if (move) {
       this.pos.x += movementX
       this.pos.y += movementY
@@ -161,7 +247,8 @@ export default class ResizeableImage extends Vue {
       setTimeout(() => {
         const {
           container,
-          box
+          box,
+          img
         } = this
         this.pos = {
           x: container.clientWidth / 2,
@@ -169,6 +256,12 @@ export default class ResizeableImage extends Vue {
         }
         this.width = box.clientWidth
         this.height = box.clientHeight
+        if (img instanceof HTMLElement) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          this.ctx = (img as HTMLCanvasElement).getContext('2d')
+          this.shape.draw(this.ctx)
+        }
         resolve(true)
       }, 50)
     })

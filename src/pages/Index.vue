@@ -8,7 +8,8 @@
           transition-show="scale"
           transition-hide="scale")
           BrushComponent(:brushSync.sync="brush")
-      q-btn(dense flat round icon="iconfont dbxingzhuang")
+      q-btn(dense flat round icon="iconfont dbxingzhuang" @click="showImg()")
+        q-tooltip 添加2D形状
       q-btn(dense flat round icon="image" @click="chooseFile")
         q-tooltip 添加图片
       q-btn(dense flat round icon="title")
@@ -34,14 +35,14 @@
       canvas#board(
         ref="board"
         :style="{transform:`translate3d(${translatePos.x}px,${translatePos.y}px,${translatePos.z}px)`,cursor}"
+        @mousedown="boardMouseDown"
         @mousemove="boardMouseMove"
         @mouseup="boardMouseUp"
         @dragenter.prevent="dropHandler"
         @dragleave.prevent="dropHandler"
         @dragover.prevent="dropHandler"
         @drop.prevent="dropHandler"
-        @contextmenu.prevent
-        @mousedown="boardMouseDown")
+        @contextmenu.prevent)
 </template>
 
 <script lang="ts">
@@ -50,13 +51,14 @@ import BrushComponent from 'components/brush/brush.vue'
 import Brush from 'components/brush/brush'
 import EraserComponent from 'components/eraser/eraser.vue'
 import Eraser from 'components/eraser/eraser'
-import ResizeableImage, { CompleteData } from 'components/img.vue'
+import Resizeable, { CompleteData } from 'components/resizeable/resizeable.vue'
+// import FixedHeap, { getFixedHeap } from 'src/fixed-heap'
 
 type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
 
 @Component({
   components: {
-    ResizeableImage,
+    Resizeable,
     EraserComponent,
     BrushComponent
   }
@@ -65,7 +67,6 @@ export default class DrawBoard extends Vue {
   right = false
   ctrl = false
   isMouseDown = false
-  resizeableImage:ResizeableImage|null=null
   drawStatus: DrawStatus = 'brush'
   oldPoint = {
     x: 0,
@@ -129,18 +130,28 @@ export default class DrawBoard extends Vue {
     a.click()
   }
 
-  showImg (url:string) {
-    const { content, ctx } = this
-    const img = new ResizeableImage({
+  showImg (url?: string) {
+    const {
+      content,
+      ctx
+    } = this
+    const img = new Resizeable({
       propsData: {
-        url
+        url,
+        type: url ? 'img' : 'shape'
       }
     })
     img.$mount()
     content.appendChild(img.$el)
-    img.$on('complete', (data:CompleteData) => {
+    img.$on('complete', (data: CompleteData) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const { x, y, width, height, rotate } = data
+      const {
+        x,
+        y,
+        width,
+        height,
+        rotate
+      } = data
       ctx.save()
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       ctx.translate(x + width / 2, y + height / 2)
@@ -210,9 +221,7 @@ export default class DrawBoard extends Vue {
     const {
       offsetX,
       offsetY,
-      ctrlKey,
-      movementY,
-      movementX
+      ctrlKey
     } = e
     const {
       drawStatus,
@@ -225,9 +234,15 @@ export default class DrawBoard extends Vue {
       return
     }
     if (isMouseDown) {
+      const {
+        oldPoint: {
+          x,
+          y
+        }
+      } = this
       if (drawStatus === 'brush') {
         ctx.beginPath()
-        ctx.moveTo(offsetX - movementX, offsetY - movementY)
+        ctx.moveTo(x, y)
         ctx.lineTo(offsetX, offsetY)
         ctx.closePath()
         ctx.stroke()
@@ -236,11 +251,15 @@ export default class DrawBoard extends Vue {
         // 重合部分透明
         ctx.globalCompositeOperation = 'destination-out'
         ctx.beginPath()
-        ctx.moveTo(offsetX - movementX, offsetY - movementY)
+        ctx.moveTo(x, y)
         ctx.lineTo(offsetX, offsetY)
         ctx.closePath()
         ctx.stroke()
         ctx.restore()
+      }
+      this.oldPoint = {
+        x: offsetX,
+        y: offsetY
       }
     }
   }
@@ -326,6 +345,7 @@ export default class DrawBoard extends Vue {
     }
     board.width = document.body.clientWidth
     board.height = document.body.clientHeight - 58
+    // window.fh = getFixedHeap(10)
   }
 
   beforeDestroy () {
