@@ -2,11 +2,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 export default class FixedHeap extends Array {
-  #length = 0
-
   constructor (length: number, ...args: Array<any>) {
     super(...args)
-    this.setLength(length)
+    this.length = length
   }
 
   /**
@@ -22,7 +20,6 @@ export default class FixedHeap extends Array {
       super.splice(0, items.length - (length - realLength))
     }
     for (let i = this.getRealLength(), j = 0; j < items.length; i++, j++) {
-      // @todo 当堆满了的时候有问题
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       this[i] = items[j]
     }
@@ -40,34 +37,17 @@ export default class FixedHeap extends Array {
     this.forEach(item => item && num++)
     return num
   }
-
-  setLength (length: number) {
-    // @todo 这里有问题
-    this.length = length
-    this.#length = length
-  }
-
-  getLength () {
-    return this.#length
-  }
 }
 
 export function newFixedHeap (length: number):FixedHeap {
   const fixedHeap = new FixedHeap(length)
   return new Proxy(fixedHeap, {
     get (target, p) {
-      if (p === 'length') {
-        return target.getLength()
-      }
       return Reflect.get(target, p)
     },
     set (target, p, value) {
       try {
-        if (p === 'length') {
-          target.setLength(value)
-        } else {
-          Reflect.set(target, p, value)
-        }
+        Reflect.set(target, p, value)
         return true
       } catch (e) {
         return false

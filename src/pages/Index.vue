@@ -119,6 +119,7 @@ export default class DrawBoard extends Vue {
   putHistory () {
     const { board, ctx, history } = this
     history.push(ctx.getImageData(0, 0, board.width, board.height))
+    console.log(history)
   }
 
   reset () {
