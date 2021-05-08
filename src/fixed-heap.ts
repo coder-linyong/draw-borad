@@ -15,16 +15,23 @@ export default class FixedHeap extends Array {
    * @returns {number} 返回数组长度
    */
   push (...items: Array<any>): number {
-    const { length } = this
+    const length = this.length
     const realLength = this.getRealLength()
     items.splice(0, items.length - length)
     if ((length - realLength) < items.length) {
-      this.splice(0, items.length - (length - realLength))
+      super.splice(0, items.length - (length - realLength))
     }
     for (let i = this.getRealLength(), j = 0; j < items.length; i++, j++) {
+      // @todo 当堆满了的时候有问题
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       this[i] = items[j]
     }
+    return this.length
+  }
+
+  unshift (...items:Array<any>): number {
+    super.unshift(...items)
+    super.splice(this.length)
     return this.length
   }
 
@@ -35,6 +42,7 @@ export default class FixedHeap extends Array {
   }
 
   setLength (length: number) {
+    // @todo 这里有问题
     this.length = length
     this.#length = length
   }
@@ -44,7 +52,7 @@ export default class FixedHeap extends Array {
   }
 }
 
-export function newFixedHeap (length: number) {
+export function newFixedHeap (length: number):FixedHeap {
   const fixedHeap = new FixedHeap(length)
   return new Proxy(fixedHeap, {
     get (target, p) {

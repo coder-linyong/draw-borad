@@ -256,10 +256,10 @@ export default class ResizeableImage extends Vue {
         }
         this.width = box.clientWidth
         this.height = box.clientHeight
-        if (img instanceof HTMLElement) {
+        if (img instanceof HTMLCanvasElement) {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          this.ctx = (img as HTMLCanvasElement).getContext('2d')
+          this.ctx = (img).getContext('2d')
           this.shape.draw(this.ctx)
         }
         resolve(true)

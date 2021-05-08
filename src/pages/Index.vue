@@ -68,7 +68,7 @@ export default class DrawBoard extends Vue {
   right = false
   ctrl = false
   isMouseDown = false
-  history: FixedHeap = new FixedHeap(10)
+  history!: FixedHeap
   drawStatus: DrawStatus = 'brush'
   oldPoint = {
     x: 0,
@@ -167,6 +167,7 @@ export default class DrawBoard extends Vue {
       ctx.restore()
       content.removeChild(img.$el)
       img.$destroy()
+      this.putHistory()
     })
   }
 
@@ -293,6 +294,7 @@ export default class DrawBoard extends Vue {
       if (drawStatus === 'brush' || drawStatus === 'eraser') {
         this.isMouseDown = false
       }
+      this.putHistory()
     }
   }
 
@@ -347,8 +349,8 @@ export default class DrawBoard extends Vue {
       })
     }
     board.width = document.body.clientWidth
-    board.height = document.body.clientHeight - 58
-    window.arr = newFixedHeap(10)
+    board.height = document.body.clientHeight - 48
+    this.history = newFixedHeap(3)
   }
 
   beforeDestroy () {
