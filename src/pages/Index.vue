@@ -25,6 +25,10 @@
         q-tooltip 重置画板
       q-btn(dense flat round icon="download" @click="download")
         q-tooltip 保存为图片
+      q-btn(dense flat round icon="undo" @click="move(-1)")
+        q-tooltip 撤销
+      q-btn(dense flat round icon="redo" @click="move(1)")
+        q-tooltip 重做
     q-drawer(v-model="right" side="right" overlay behavior="desktop" bordered)
     div.col.full-width(
       :class="$style.content"
@@ -120,6 +124,17 @@ export default class DrawBoard extends Vue {
     const { board, ctx, history } = this
     history.push(ctx.getImageData(0, 0, board.width, board.height))
     console.log(history)
+  }
+
+  move (num:number) {
+    const { ctx, history } = this
+    // @todo 移动的问题，超过最大可移动位置不向下移动
+    if (num > 0 && history.realLength <= history.pointerPos + 1) return
+    const imageData = history.move(num) as ImageData
+    if (imageData) {
+      this.reset()
+      ctx.putImageData(imageData, 0, 0)
+    }
   }
 
   reset () {
@@ -351,7 +366,8 @@ export default class DrawBoard extends Vue {
     }
     board.width = document.body.clientWidth
     board.height = document.body.clientHeight - 48
-    this.history = newFixedHeap(3)
+    this.history = newFixedHeap(10)
+    this.putHistory()
   }
 
   beforeDestroy () {
