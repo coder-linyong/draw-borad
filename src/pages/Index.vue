@@ -128,7 +128,6 @@ export default class DrawBoard extends Vue {
 
   move (num:number) {
     const { ctx, history } = this
-    // @todo 移动的问题，超过最大可移动位置不向下移动
     if (num > 0 && history.realLength <= history.pointerPos + 1) return
     const imageData = history.move(num) as ImageData
     if (imageData) {
