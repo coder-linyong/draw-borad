@@ -18,7 +18,7 @@ export default class Brush {
       maxTransparency,
       minTransparency
     } = Brush
-    this.size = size < minSize ? minSize : Math.min(maxSize, size)
+    this.size = [maxSize, minSize, size].sort()[1]
     this.transparency = transparency < minTransparency ? minTransparency : Math.min(maxTransparency, transparency)
     this.color = color
   }

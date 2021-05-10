@@ -68,7 +68,6 @@ export default class FixedHeap extends Array {
     } else if (num < 0) {
       this.#pos = this.#pos + num < 0 ? 0 : this.#pos + num
     }
-    console.log(this.#pos)
     return this[this.#pos]
   }
 }

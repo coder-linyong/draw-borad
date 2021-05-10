@@ -12,7 +12,7 @@
         q-tooltip 添加2D形状
       q-btn(dense flat round icon="image" @click="chooseFile")
         q-tooltip 添加图片
-      q-btn(dense flat round icon="title")
+      q-btn(dense flat round icon="title" @click="openDialog('FontComponent')")
         q-tooltip 添加文本
       q-btn(dense flat round icon="iconfont dbxiangpicha" @click="drawStatus='eraser'")
         q-menu(
@@ -47,6 +47,8 @@
         @dragover.prevent="dropHandler"
         @drop.prevent="dropHandler"
         @contextmenu.prevent)
+    q-dialog(v-model="visible")
+      component(:is="componentName" @complete="onDialogComplete")
 </template>
 
 <script lang="ts">
@@ -55,6 +57,7 @@ import { Vue, Component, Ref, Watch } from 'vue-property-decorator'
 import BrushComponent from 'components/brush/brush.vue'
 import Brush from 'components/brush/brush'
 import EraserComponent from 'components/eraser/eraser.vue'
+import FontComponent from 'components/font/font.vue'
 import Eraser from 'components/eraser/eraser'
 import Resizeable, { CompleteData } from 'components/resizeable/resizeable.vue'
 import FixedHeap, { newFixedHeap } from 'src/fixed-heap'
@@ -65,12 +68,15 @@ type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
   components: {
     Resizeable,
     EraserComponent,
-    BrushComponent
+    BrushComponent,
+    FontComponent
   }
 })
 export default class DrawBoard extends Vue {
   right = false
   ctrl = false
+  visible=false
+  componentName='FontComponent'
   isMouseDown = false
   history!: FixedHeap
   drawStatus: DrawStatus = 'brush'
@@ -120,10 +126,14 @@ export default class DrawBoard extends Vue {
     ctx.lineWidth = eraser.size
   }
 
+  openDialog (component:string) {
+    this.visible = true
+    this.componentName = component
+  }
+
   putHistory () {
     const { board, ctx, history } = this
     history.push(ctx.getImageData(0, 0, board.width, board.height))
-    console.log(history)
   }
 
   move (num:number) {
@@ -184,6 +194,13 @@ export default class DrawBoard extends Vue {
       img.$destroy()
       this.putHistory()
     })
+  }
+
+  onDialogComplete (data:any) {
+    if (typeof data === 'string' && data.includes('data:image/png')) {
+      this.showImg(data)
+    }
+    this.visible = false
   }
 
   chooseFile () {

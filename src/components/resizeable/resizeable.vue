@@ -20,6 +20,7 @@
         :class="[$style.drop,$style[drop]]")
       q-btn.absolute-center.bg-white(
         :style="{transform:`translate(-50%,-50%) rotate(${-rotate}deg)`}"
+        style="opacity:0.5;"
         flat
         dense
         icon="done"
