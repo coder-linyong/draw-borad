@@ -29,7 +29,6 @@
         q-tooltip 撤销
       q-btn(dense flat round icon="redo" @click="move(1)")
         q-tooltip 重做
-    q-drawer(v-model="right" side="right" overlay behavior="desktop" bordered)
     div.col.full-width(
       :class="$style.content"
       ref="content"
@@ -64,6 +63,9 @@ import FixedHeap, { newFixedHeap } from 'src/fixed-heap'
 
 type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
 
+// @todo 写注释外加优化代码（虽然可能优化不了啥）
+// @todo readme完善
+
 @Component({
   components: {
     Resizeable,
@@ -73,13 +75,15 @@ type DrawStatus = 'brush' | 'eraser' | 'shape' | 'text'
   }
 })
 export default class DrawBoard extends Vue {
-  right = false
   ctrl = false
   visible=false
   componentName='FontComponent'
   isMouseDown = false
   history!: FixedHeap
   drawStatus: DrawStatus = 'brush'
+  ctx!: CanvasRenderingContext2D
+  brush: Brush = new Brush()
+  eraser: Eraser = new Eraser()
   oldPoint = {
     x: 0,
     y: 0
@@ -91,11 +95,7 @@ export default class DrawBoard extends Vue {
     z: 0
   }
 
-  ctx!: CanvasRenderingContext2D
-
-  brush: Brush = new Brush()
-  eraser: Eraser = new Eraser()
-
+  // 鼠标的形状
   get cursor () {
     const {
       ctrl,
@@ -131,11 +131,18 @@ export default class DrawBoard extends Vue {
     this.componentName = component
   }
 
+  /**
+   * 添加历史记录
+   */
   putHistory () {
     const { board, ctx, history } = this
     history.push(ctx.getImageData(0, 0, board.width, board.height))
   }
 
+  /**
+   * 移动历史记录指针，并将移动位置的画面绘制到画布上
+   * @param {number} num 移动步长，可以是正数或者负数
+   */
   move (num:number) {
     const { ctx, history } = this
     if (num > 0 && history.realLength <= history.pointerPos + 1) return
@@ -167,6 +174,7 @@ export default class DrawBoard extends Vue {
       content,
       ctx
     } = this
+    // 创建可变尺寸图形，并添加到页面
     const img = new Resizeable({
       propsData: {
         url,
@@ -197,6 +205,7 @@ export default class DrawBoard extends Vue {
   }
 
   onDialogComplete (data:any) {
+    // 如果返回数据是base64格式的字符串
     if (typeof data === 'string' && data.includes('data:image/png')) {
       this.showImg(data)
     }
